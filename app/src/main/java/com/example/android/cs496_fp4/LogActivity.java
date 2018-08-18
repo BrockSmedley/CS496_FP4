@@ -1,6 +1,7 @@
 package com.example.android.cs496_fp4;
 
 import android.content.Intent;
+import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,7 +18,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.common.api.GoogleApi;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -30,6 +35,7 @@ import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 public class LogActivity extends AppCompatActivity {
+    private FusedLocationProviderClient mFusedLocationClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,8 +63,31 @@ public class LogActivity extends AppCompatActivity {
         final TextView textViewDbLoc = findViewById(R.id.textViewDbLoc);
         final TextView textViewMyLoc = findViewById(R.id.textViewMyLoc);
 
+        // get Firebase instance
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         DocumentReference user = db.collection("users").document("JSPYVHttcrA3LeUUGoCR");
+
+        // get location
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        try {
+            mFusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            // Got last known location. In some rare situations this can be null.
+                            if (location != null) {
+                                // Logic to handle location object
+                                String lat = Double.toString(location.getLatitude());
+                                String lon = Double.toString(location.getLongitude());
+                                String loc = lat + ", " + lon;
+                                textViewMyLoc.setText(loc);
+                            }
+                        }
+                    });
+        }
+        catch (SecurityException e){
+            Toast.makeText(this, "Location permissions must be enabled", Toast.LENGTH_SHORT).show();
+        }
 
         db.collection("users")
                 .get()
