@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
     private GoogleSignInClient mGoogleSignInClient;
     private final int RC_SIGN_IN = 42;
     private final String TAG = "dbg";
-    private FirebaseAuth mAuth;
+    public FirebaseAuth mAuth;
     public static final String EXTRA_MESSAGE = "email";
 
 
@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
 
         // Configure Google Sign In
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestIdToken(CLIENT_ID)
                 .requestEmail()
                 .build();
 
@@ -54,7 +54,6 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
     @Override
     public void onStart(){
         super.onStart();
-
         // Check if user is signed in (non-null) and update UI accordingly.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         updateUI(currentUser);
@@ -131,5 +130,11 @@ public class MainActivity extends AppCompatActivity implements Button.OnClickLis
                         // ...
                     }
                 });
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        mGoogleSignInClient.signOut();
     }
 }
