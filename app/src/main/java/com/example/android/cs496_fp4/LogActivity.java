@@ -34,8 +34,18 @@ import com.google.firebase.firestore.QuerySnapshot;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
-public class LogActivity extends AppCompatActivity {
+public class LogActivity extends AppCompatActivity implements View.OnClickListener {
     private FusedLocationProviderClient mFusedLocationClient;
+    private static String loc;
+    private static FirebaseFirestore db;
+    private static DocumentReference user;
+
+    private static EditText editTextId;
+    private static EditText editTextName;
+    private static EditText editTextAge;
+    private static TextView textViewDbLoc;
+    private static TextView textViewMyLoc;
+    private static Button saveButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,37 +67,21 @@ public class LogActivity extends AppCompatActivity {
             }
         });
 
-        final EditText editTextId = findViewById(R.id.editTextId);
-        final EditText editTextName = findViewById(R.id.editTextName);
-        final EditText editTextAge = findViewById(R.id.editTextAge);
-        final TextView textViewDbLoc = findViewById(R.id.textViewDbLoc);
-        final TextView textViewMyLoc = findViewById(R.id.textViewMyLoc);
+        editTextId = findViewById(R.id.editTextId);
+        editTextName = findViewById(R.id.editTextName);
+        editTextAge = findViewById(R.id.editTextAge);
+        textViewDbLoc = findViewById(R.id.textViewDbLoc);
+        textViewMyLoc = findViewById(R.id.textViewMyLoc);
+        saveButton = findViewById(R.id.buttonSubmit);
+
+        saveButton.setOnClickListener(this);
+
+        // get location client
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // get Firebase instance
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference user = db.collection("users").document("JSPYVHttcrA3LeUUGoCR");
-
-        // get location
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        try {
-            mFusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            // Got last known location. In some rare situations this can be null.
-                            if (location != null) {
-                                // Logic to handle location object
-                                String lat = Double.toString(location.getLatitude());
-                                String lon = Double.toString(location.getLongitude());
-                                String loc = lat + ", " + lon;
-                                textViewMyLoc.setText(loc);
-                            }
-                        }
-                    });
-        }
-        catch (SecurityException e){
-            Toast.makeText(this, "Location permissions must be enabled", Toast.LENGTH_SHORT).show();
-        }
+        db = FirebaseFirestore.getInstance();
+        user = db.collection("users").document("JSPYVHttcrA3LeUUGoCR");
 
         db.collection("users")
                 .get()
@@ -102,7 +96,7 @@ public class LogActivity extends AppCompatActivity {
                                     editTextName.setText(data.getString("name"));
                                     editTextId.setText(data.getString("id"));
                                     editTextAge.setText(data.getString("age"));
-                                    textViewDbLoc.setText(data.getString("location").toString());
+                                    textViewDbLoc.setText("DB location: " + data.getString("location").toString());
                                 }
                                 catch (Exception e){
                                     Log.d("json", e.getMessage());
@@ -114,7 +108,7 @@ public class LogActivity extends AppCompatActivity {
                     }
                 });
 
-        user.update("id", 69);
+        //user.update("name", "brock");
 
 
         // HTTP requests
@@ -150,5 +144,54 @@ public class LogActivity extends AppCompatActivity {
         );
 
         queue.add(stringRequest);
+    }
+
+    private String convertLocation(Location location){
+        // Logic to handle location object
+        String lat = Double.toString(location.getLatitude());
+        String lon = Double.toString(location.getLongitude());
+        return lat + ", " + lon;
+    }
+
+    @Override
+    public void onClick(View v){
+        switch (v.getId()){
+            case (R.id.buttonSubmit):
+                updateDB();
+            default:
+                break;
+        }
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+
+        // get location
+        try {
+            mFusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            // Got last known location. In some rare situations this can be null.
+                            if (location != null) {
+                                // Logic to handle location object
+                                loc = convertLocation(location);
+                                textViewMyLoc.setText("My location: " + loc);
+                            }
+                        }
+                    });
+        }
+        catch (SecurityException e){
+            Toast.makeText(this, "Location permissions must be enabled", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateDB(){
+        Toast.makeText(this, "SENDING LOCATION", Toast.LENGTH_SHORT).show();
+        user.update("id", editTextId.getText().toString());
+        user.update("age", editTextAge.getText().toString());
+        user.update("name", editTextName.getText().toString());
+        user.update("location", loc);
     }
 }
